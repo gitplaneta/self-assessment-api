@@ -28,4 +28,3 @@ object SelfEmploymentPeriodAuditData {
   implicit val writes: Writes[SelfEmploymentPeriodAuditData] = Json.writes[SelfEmploymentPeriodAuditData]
   implicit val reads: Reads[SelfEmploymentPeriodAuditData] = Json.reads[SelfEmploymentPeriodAuditData]
 }
-
