@@ -122,7 +122,7 @@ object PropertiesPeriodResource extends BaseController {
         val auditData = UKPropertyOtherPeriodAuditData(nino = nino, requestPayload = Some(requestPayload),
           periodId = Some(periodId), transactionReference = Some(transactionReference))
         auditConnector.audit2(auditType = MTDSAEvent.periodicUpdateSubmitted.toString,
-          transactionName = "create-uk-property-other-period",
+          transactionName = "create-period-uk-property-other",
           path = s"/ni/$nino/${SourceType.Properties.toString}/${id.toString}/periods",
           auditData = Json.toJson(auditData)
         )
@@ -132,7 +132,7 @@ object PropertiesPeriodResource extends BaseController {
         val auditData = UKPropertyFHLPeriodAuditData(nino = nino, requestPayload = Some(requestPayload),
           periodId = Some(periodId), transactionReference = Some(transactionReference))
         auditConnector.audit2(auditType = MTDSAEvent.periodicUpdateSubmitted.toString,
-          transactionName = "create-uk-property-fhl-period",
+          transactionName = "create-period-uk-property-fhl",
           path = s"/ni/$nino/${SourceType.Properties.toString}/${id.toString}/periods",
           auditData = Json.toJson(auditData)
         )

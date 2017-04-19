@@ -51,7 +51,7 @@ object SelfEmploymentPeriodResource extends BaseController {
           case 200 =>
              auditConnector.audit2(
               auditType = MTDSAEvent.periodicUpdateSubmitted.toString,
-              transactionName = "create-self-employment-period",
+              transactionName = "create-period-self-employment",
               path = s"/ni/$nino/self-employments/$sourceId/periods",
               auditData = Json.toJson(selfEmploymentPeriodAuditData.copy(periodId = None, transactionReference = response.getTransactionReference))
             )
