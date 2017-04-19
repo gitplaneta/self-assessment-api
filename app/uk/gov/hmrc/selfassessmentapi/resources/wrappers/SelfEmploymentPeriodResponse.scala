@@ -31,6 +31,17 @@ class SelfEmploymentPeriodResponse(underlying: HttpResponse) {
   val status: Int = underlying.status
   def json: JsValue = underlying.json
 
+  def getTransactionReference: Option[String] = {
+    (json \ "transactionReference").asOpt[String] match {
+      case Some(transactionReference) =>
+        Some(transactionReference)
+      case None => {
+        logger.error("The 'transactionReference' field was not found in the response from DES.")
+        None
+      }
+    }
+  }
+
   def createLocationHeader(nino: Nino, id: SourceId): Option[String] = {
     (json \ "transactionReference").asOpt[String] match {
       case Some(periodId) =>

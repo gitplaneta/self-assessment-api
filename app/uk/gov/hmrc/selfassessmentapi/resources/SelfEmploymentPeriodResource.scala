@@ -21,9 +21,11 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.selfassessmentapi.config.{MTDSAEvent, MicroserviceAuditConnector}
 import uk.gov.hmrc.selfassessmentapi.connectors.SelfEmploymentPeriodConnector
 import uk.gov.hmrc.selfassessmentapi.models.Errors.Error
 import uk.gov.hmrc.selfassessmentapi.models._
+import uk.gov.hmrc.selfassessmentapi.models.audit.SelfEmploymentPeriodAuditData
 import uk.gov.hmrc.selfassessmentapi.models.des.Financials
 import uk.gov.hmrc.selfassessmentapi.models.selfemployment.{SelfEmploymentPeriod, SelfEmploymentPeriodUpdate}
 import uk.gov.hmrc.selfassessmentapi.resources.wrappers.SelfEmploymentPeriodResponse
@@ -35,15 +37,25 @@ object SelfEmploymentPeriodResource extends BaseController {
   private val logger = Logger(SelfEmploymentPeriodResource.getClass)
   private lazy val featureSwitch = FeatureSwitchAction(SourceType.SelfEmployments, "periods")
   private val connector = SelfEmploymentPeriodConnector
+  private val auditConnector = MicroserviceAuditConnector
 
   def createPeriod(nino: Nino, sourceId: SourceId): Action[JsValue] = featureSwitch.asyncJsonFeatureSwitch { implicit request =>
+    var selfEmploymentPeriodAuditData: SelfEmploymentPeriodAuditData = SelfEmploymentPeriodAuditData(nino, sourceId)
     validate[SelfEmploymentPeriod, SelfEmploymentPeriodResponse](request.body) { period =>
+      selfEmploymentPeriodAuditData = selfEmploymentPeriodAuditData.copy(requestPayload = Some(period))
       connector.create(nino, sourceId, des.SelfEmploymentPeriod.from(period))
     } match {
       case Left(errorResult) => Future.successful(handleValidationErrors(errorResult))
       case Right(result) => result.map { response =>
         response.status match {
-          case 200 => Created.withHeaders(LOCATION -> response.createLocationHeader(nino, sourceId).getOrElse(""))
+          case 200 =>
+             auditConnector.audit2(
+              auditType = MTDSAEvent.periodicUpdateSubmitted.toString,
+              transactionName = "create-self-employment-period",
+              path = s"/ni/$nino/self-employments/$sourceId/periods",
+              auditData = Json.toJson(selfEmploymentPeriodAuditData.copy(periodId = None, transactionReference = response.getTransactionReference))
+            )
+            Created.withHeaders(LOCATION -> response.createLocationHeader(nino, sourceId).getOrElse(""))
           case 400 if response.containsOverlappingPeriod => Forbidden(Error.asBusinessError(response.json))
           case 400 => BadRequest(Error.from(response.json))
           case 404 => NotFound
